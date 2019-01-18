@@ -42,7 +42,17 @@ interface StyleDeclaration {
 const hyphenateKey = (key: string): string => toLower(key.replace(/(webkit|ms|moz|khtml)/g, '-$1').replace(/([a-zA-Z])(?=[A-Z])/g, '$1-'));
 
 export const appendKeys = (keys: Array<string>): void => {
-  const keysToAppend = keys.filter(key => !CSSStyleDeclaration.prototype.hasOwnProperty(key));
+  const keysToAppend = keys.filter(key => {
+    if (CSSStyleDeclaration.prototype.hasOwnProperty(key)) {
+      return false;
+    }
+    // Ignore numeric keys to avoid colliding with TransferrableKeys, which may
+    // cause infinite recursion between the getter below and getPropertyValue().
+    if (String(+key) === key) {
+      return false;
+    }
+    return true;
+  });
   if (keysToAppend.length <= 0) {
     return;
   }
@@ -63,14 +73,12 @@ export const appendKeys = (keys: Array<string>): void => {
       const hyphenatedKey = hyphenateKey(key);
       CSSStyleDeclaration.prototype[index + previousPrototypeLength] = hyphenatedKey;
 
-      Object.defineProperties(CSSStyleDeclaration.prototype, {
-        [key]: {
-          get(): string {
-            return this.getPropertyValue(hyphenatedKey);
-          },
-          set(value) {
-            this.setProperty(hyphenatedKey, value);
-          },
+      Object.defineProperty(CSSStyleDeclaration.prototype, key, {
+        get(): string {
+          return this.getPropertyValue(hyphenatedKey);
+        },
+        set(value) {
+          this.setProperty(hyphenatedKey, value);
         },
       });
     },

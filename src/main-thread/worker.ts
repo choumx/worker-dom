@@ -41,11 +41,8 @@ export function createWorker(
   callbacks_ = callbacks;
 
   // TODO(KB): Minify this output during build process.
-  const keys: Array<string> = [];
+  const allStyleProperties: Array<string> = Object.keys(document.body.style);
   const hydratedNode = createHydrateableNode(baseElement);
-  for (const key in document.body.style) {
-    keys.push(`'${key}'`);
-  }
   const code = `
     'use strict';
     ${workerDOMScript}
@@ -71,7 +68,7 @@ export function createWorker(
         return document.removeEventListener(type, handler);
       }
       this.consumeInitialDOM(document, ${JSON.stringify(initialStrings)}, ${JSON.stringify(hydratedNode)});
-      this.appendKeys([${keys}]);
+      this.appendKeys(${JSON.stringify(allStyleProperties)});
       document.observe();
       ${authorScript}
     }).call(WorkerThread.workerDOM);
